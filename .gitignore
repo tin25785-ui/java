@@ -1,0 +1,18 @@
+# Build and dependency directories
+**/node_modules/
+**/dist/
+**/target/
+**/*.class
+**/*.jar
+
+# Database & logs
+**/*.db
+**/*.db-journal
+**/*.log
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

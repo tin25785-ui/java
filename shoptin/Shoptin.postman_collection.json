@@ -1,0 +1,360 @@
+{
+  "info": {
+    "name": "Shoptin - Buoi 06, 07 (JWT & Phan Quyen)",
+    "description": "Bo suu tap Postman kiem thu chuc nang Dang nhap JWT va Phan quyen USER / ADMIN cho Shoptin",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication (Xác thực)",
+      "item": [
+        {
+          "name": "1.1 Đăng nhập tài khoản ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"admin_token\", jsonData.token);",
+                  "    console.log(\"Saved admin_token:\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.2 Đăng nhập tài khoản USER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"user_token\", jsonData.token);",
+                  "    console.log(\"Saved user_token:\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"user\",\n  \"password\": \"user123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.3 Đăng nhập sai mật khẩu (Test 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"wrongpass\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.4 Lấy thông tin user hiện tại (/api/auth/me) - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me"
+            }
+          }
+        },
+        {
+          "name": "1.5 Lấy thông tin user hiện tại (/api/auth/me) - User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Xem sản phẩm (USER & ADMIN)",
+      "item": [
+        {
+          "name": "2.1 USER xem danh sách sản phẩm (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products"
+            }
+          }
+        },
+        {
+          "name": "2.2 ADMIN xem danh sách sản phẩm (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products"
+            }
+          }
+        },
+        {
+          "name": "2.3 USER xem chi tiết sản phẩm id=1 (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/1"
+            }
+          }
+        },
+        {
+          "name": "2.4 USER tìm kiếm sản phẩm theo tên (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/search?name=Laptop"
+            }
+          }
+        },
+        {
+          "name": "2.5 Không có Token gọi API (Bị từ chối 401 Unauthorized)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Thêm sản phẩm (Phân quyền ADMIN / USER)",
+      "item": [
+        {
+          "name": "3.1 ADMIN thêm sản phẩm (Thành công 201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop Gaming Legion 5 Pro\",\n  \"price\": 34500000,\n  \"quantity\": 5,\n  \"description\": \"Ryzen 7 7745HX, RTX 4060, RAM 16GB, SSD 1TB\"\n}"
+            }
+          }
+        },
+        {
+          "name": "3.2 USER cố tình thêm sản phẩm (Bị chặn 403 Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hack Phone XYZ\",\n  \"price\": 100000,\n  \"quantity\": 1,\n  \"description\": \"Tài khoản thường cố tình thêm\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Sửa sản phẩm (Phân quyền ADMIN / USER)",
+      "item": [
+        {
+          "name": "4.1 ADMIN cập nhật sản phẩm id=1 (Thành công 200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/1"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop Dell XPS 13 (Updated)\",\n  \"price\": 31500000,\n  \"quantity\": 8,\n  \"description\": \"Dell XPS 13 i7 gen 13 RAM 16GB\"\n}"
+            }
+          }
+        },
+        {
+          "name": "4.2 USER cố tình sửa sản phẩm id=1 (Bị chặn 403 Forbidden)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/1"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User Hack Price\",\n  \"price\": 1000,\n  \"quantity\": 99,\n  \"description\": \"User cố sửa\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Xóa sản phẩm (Phân quyền ADMIN / USER)",
+      "item": [
+        {
+          "name": "5.1 USER cố tình xóa sản phẩm id=2 (Bị chặn 403 Forbidden)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/2"
+            }
+          }
+        },
+        {
+          "name": "5.2 ADMIN xóa sản phẩm id=2 (Thành công 200 OK)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
