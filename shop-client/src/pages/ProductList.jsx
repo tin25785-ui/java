@@ -118,6 +118,7 @@ function ProductList() {
                             <thead>
                                 <tr>
                                     <th style={{ width: "60px" }}>ID</th>
+                                    <th style={{ width: "70px", textAlign: "center" }}>Hình Ảnh</th>
                                     <th>Tên Sản Phẩm</th>
                                     <th className="num">Đơn Giá</th>
                                     <th className="num" style={{ width: "100px" }}>Số Lượng</th>
@@ -140,6 +141,18 @@ function ProductList() {
                                         <tr key={product.id}>
                                             <td style={{ fontWeight: "600", color: "var(--muted)" }}>
                                                 #{product.id}
+                                            </td>
+                                            <td style={{ textAlign: "center" }}>
+                                                {product.imageUrl ? (
+                                                    <img
+                                                        src={product.imageUrl}
+                                                        alt={product.name}
+                                                        style={{ width: "42px", height: "42px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }}
+                                                        onError={(e) => { e.target.src = "https://placehold.co/100x100?text=SP"; }}
+                                                    />
+                                                ) : (
+                                                    <span style={{ fontSize: "1.4rem" }}>📦</span>
+                                                )}
                                             </td>
                                             <td className="name">
                                                 <Link to={`/products/${product.id}`} style={{ textDecoration: "none", fontWeight: "600" }}>

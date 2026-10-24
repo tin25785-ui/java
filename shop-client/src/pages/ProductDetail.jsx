@@ -6,7 +6,7 @@ import { getRole } from "../services/authService";
 /**
  * =========================================================================
  * TRANG CHI TIẾT SẢN PHẨM: ProductDetail.jsx
- * - Thiết kế giao diện Card chi tiết, nhãn rõ ràng
+ * - Thiết kế giao diện Card chi tiết, hiển thị ảnh lớn chất lượng cao
  * =========================================================================
  */
 function ProductDetail() {
@@ -61,9 +61,28 @@ function ProductDetail() {
                         <p className="card-subtitle">Thông tin chi tiết về sản phẩm trong hệ thống</p>
                     </div>
                     <span className="badge-role badge-user" style={{ fontSize: "0.85rem" }}>
-                        ID: {product.id}
+                        ID: #{product.id}
                     </span>
                 </div>
+
+                {/* HÌNH ẢNH SẢN PHẨM */}
+                {product.imageUrl && (
+                    <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                        <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            style={{
+                                maxWidth: "100%",
+                                maxHeight: "260px",
+                                objectFit: "cover",
+                                borderRadius: "10px",
+                                border: "1px solid var(--line)",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
+                            }}
+                            onError={(e) => { e.target.style.display = "none"; }}
+                        />
+                    </div>
+                )}
 
                 <dl className="detail">
                     <dt>Tên sản phẩm:</dt>

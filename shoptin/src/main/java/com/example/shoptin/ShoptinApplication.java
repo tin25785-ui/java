@@ -46,6 +46,7 @@ public class ShoptinApplication {
                 p1.setPrice(15000000.0);
                 p1.setQuantity(10);
                 p1.setDescription("Laptop văn phòng hiệu năng cao");
+                p1.setImageUrl("https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400");
                 productRepository.save(p1);
 
                 Product p2 = new Product();
@@ -53,6 +54,7 @@ public class ShoptinApplication {
                 p2.setPrice(1200000.0);
                 p2.setQuantity(25);
                 p2.setDescription("Bàn phím cơ gõ êm, đèn RGB");
+                p2.setImageUrl("https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400");
                 productRepository.save(p2);
 
                 Product p3 = new Product();
@@ -60,6 +62,7 @@ public class ShoptinApplication {
                 p3.setPrice(850000.0);
                 p3.setQuantity(40);
                 p3.setDescription("Chuột gaming cảm biến quang học");
+                p3.setImageUrl("https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400");
                 productRepository.save(p3);
             }
         };

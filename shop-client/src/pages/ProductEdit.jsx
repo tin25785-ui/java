@@ -5,8 +5,8 @@ import { getProductById, updateProduct } from "../services/productService";
 /**
  * =========================================================================
  * TRANG SỬA SẢN PHẨM: ProductEdit.jsx (Chỉ dành cho ADMIN)
- * - Tự động tải thông tin sản phẩm theo ID để người dùng chỉnh sửa
- * - Form nhập liệu bo góc, chia 2 cột cho Đơn giá và Số lượng
+ * - Tự động nạp dữ liệu cũ bao gồm cả link hình ảnh
+ * - Hỗ trợ dán hoặc sửa link hình ảnh kèm khung xem trước
  * =========================================================================
  */
 function ProductEdit() {
@@ -20,7 +20,8 @@ function ProductEdit() {
         name: "",
         price: "",
         quantity: "",
-        description: ""
+        description: "",
+        imageUrl: ""
     });
 
     useEffect(() => {
@@ -31,7 +32,8 @@ function ProductEdit() {
                         name: response.data.name || "",
                         price: response.data.price || "",
                         quantity: response.data.quantity || "",
-                        description: response.data.description || ""
+                        description: response.data.description || "",
+                        imageUrl: response.data.imageUrl || ""
                     });
                 }
                 setLoading(false);
@@ -59,7 +61,8 @@ function ProductEdit() {
             await updateProduct(id, {
                 ...product,
                 price: Number(product.price),
-                quantity: Number(product.quantity)
+                quantity: Number(product.quantity),
+                imageUrl: product.imageUrl?.trim() || ""
             });
 
             alert("✅ Cập nhật thông tin sản phẩm thành công!");
@@ -88,7 +91,7 @@ function ProductEdit() {
                 <div className="card-head">
                     <div>
                         <h2>Chỉnh Sửa Sản Phẩm #{id}</h2>
-                        <p className="card-subtitle">Cập nhật thông tin sản phẩm trong kho hàng</p>
+                        <p className="card-subtitle">Cập nhật thông tin hoặc đổi link hình ảnh sản phẩm</p>
                     </div>
                     <span className="badge-role badge-admin">Chỉ ADMIN</span>
                 </div>
@@ -109,6 +112,45 @@ function ProductEdit() {
                             onChange={handleChange}
                             required
                         />
+                    </div>
+
+                    {/* Ô DÁN / SỬA LINK HÌNH ẢNH */}
+                    <div className="field">
+                        <label htmlFor="imageUrl">Hình ảnh sản phẩm (Link URL ảnh):</label>
+                        <input
+                            id="imageUrl"
+                            name="imageUrl"
+                            placeholder="Dán link ảnh tại đây (Ví dụ: https://...)"
+                            value={product.imageUrl}
+                            onChange={handleChange}
+                        />
+
+                        {/* Khung xem trước hình ảnh */}
+                        {product.imageUrl && (
+                            <div style={{
+                                marginTop: "10px",
+                                padding: "10px",
+                                border: "1px dashed var(--line)",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px",
+                                background: "#fafafa"
+                            }}>
+                                <img
+                                    src={product.imageUrl}
+                                    alt="Xem trước"
+                                    style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid #ddd" }}
+                                    onError={(e) => { e.target.src = "https://placehold.co/100x100?text=Link+Anh+Loi"; }}
+                                />
+                                <div>
+                                    <strong style={{ fontSize: "0.85rem", color: "#166534" }}>✓ Hình ảnh hiển thị</strong>
+                                    <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--muted)" }}>
+                                        Bạn có thể thay đổi link ảnh khác bất cứ lúc nào
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="field-row">

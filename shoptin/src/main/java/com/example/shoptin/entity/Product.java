@@ -32,6 +32,7 @@ public class Product {
     private double price;       // Giá bán của sản phẩm
     private int quantity;       // Số lượng sản phẩm trong kho
     private String description; // Mô tả thông tin chi tiết của sản phẩm
+    private String imageUrl;    // Đường dẫn URL hình ảnh sản phẩm
 
     // 3. CONSTRUCTOR MẶC ĐỊNH (Không tham số)
     // Bắt buộc phải có để JPA/Hibernate có thể tự động tạo Object khi truy vấn dữ liệu từ DB
@@ -81,5 +82,14 @@ public class Product {
 
     public void setDescription(String description) {
         this.description = description; // Gán mô tả sản phẩm
+    }
+
+    // 9. HÀM GETTER / SETTER CHO IMAGE_URL
+    public String getImageUrl() {
+        return imageUrl; // Lấy link ảnh sản phẩm
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl; // Gán link ảnh sản phẩm
     }
 }
