@@ -4,22 +4,27 @@ import { getProductById, updateProduct } from "../services/productService";
 
 /**
  * =========================================================================
- * TRANG SỬA SẢN PHẨM: ProductEdit.jsx (Chỉ dành cho ADMIN)
- * - Tự động nạp dữ liệu cũ bao gồm cả hình ảnh
- * - Hỗ trợ:
- *   1. Chọn ảnh mới từ máy tính (File Picker Base64).
- *   2. Nhập / sửa link URL ảnh.
- *   3. Xem trước (Preview) hình ảnh tức thì.
+ * FILE: ProductEdit.jsx
+ * THƯ MỤC: src/pages/
+ * NHIỆM VỤ: Giao diện Form Chỉnh Sửa Sản Phẩm (Dành riêng cho ADMIN).
+ * 
+ * GIẢI THÍCH KÝ HIỆU & REACT HOOKS:
+ * - useParams(): Trích xuất ID sản phẩm từ URL (ví dụ: /products/edit/2 -> id = "2").
+ * - useRef(null): Tham chiếu phần tử file input để xóa / chọn lại ảnh từ máy tính.
+ * - useEffect(): Tự động gọi API getProductById(id) để đổ dữ liệu cũ vào các ô nhập liệu khi mở trang.
  * =========================================================================
  */
 function ProductEdit() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const fileInputRef = useRef(null);
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const { id } = useParams();          // Lấy mã ID sản phẩm từ URL
+    const navigate = useNavigate();      // Điều hướng chuyển trang
+    const fileInputRef = useRef(null);   // Tham chiếu DOM đến ô input file
 
+    // 1. CÁC BIẾN TRẠNG THÁI (STATES):
+    const [loading, setLoading] = useState(true);        // Trạng thái đang tải dữ liệu ban đầu
+    const [submitting, setSubmitting] = useState(false); // Trạng thái đang lưu dữ liệu cập nhật
+    const [error, setError] = useState("");              // Thông báo lỗi
+
+    // State lưu dữ liệu sản phẩm đang chỉnh sửa
     const [product, setProduct] = useState({
         name: "",
         price: "",
@@ -28,6 +33,10 @@ function ProductEdit() {
         imageUrl: ""
     });
 
+    /**
+     * HOOK useEffect:
+     * - Chạy khi mở trang để nạp thông tin sản phẩm từ Backend theo ID.
+     */
     useEffect(() => {
         getProductById(id)
             .then(response => {
@@ -49,6 +58,9 @@ function ProductEdit() {
             });
     }, [id]);
 
+    /**
+     * HÀM CẬP NHẬT GIÁ TRỊ INPUT:
+     */
     const handleChange = (e) => {
         setProduct({
             ...product,
@@ -56,13 +68,16 @@ function ProductEdit() {
         });
     };
 
-    // Xử lý chọn ảnh mới từ máy tính
+    /**
+     * HÀM XỬ LÝ CHỌN ĐỔI ẢNH MỚI TỪ MÁY TÍNH:
+     * Sử dụng Canvas thu nhỏ kích thước (max 600px) và mã hóa Base64 chất lượng 85%.
+     */
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-            alert("Vui lòng chọn một file hình ảnh (PNG, JPG, JPEG, WEBP)!");
+            alert("Vui lòng chọn một file hình ảnh hợp lệ (PNG, JPG, JPEG, WEBP)!");
             return;
         }
 
@@ -74,6 +89,8 @@ function ProductEdit() {
                 const maxDim = 600;
                 let w = img.width;
                 let h = img.height;
+
+                // Công thức tính toán kích thước giữ nguyên tỉ lệ
                 if (w > h && w > maxDim) {
                     h = Math.round((h * maxDim) / w);
                     w = maxDim;
@@ -81,6 +98,7 @@ function ProductEdit() {
                     w = Math.round((w * maxDim) / h);
                     h = maxDim;
                 }
+
                 canvas.width = w;
                 canvas.height = h;
                 const ctx = canvas.getContext("2d");
@@ -94,7 +112,9 @@ function ProductEdit() {
         reader.readAsDataURL(file);
     };
 
-    // Xóa ảnh
+    /**
+     * HÀM XÓA ẢNH HIỆN TẠI
+     */
     const handleRemoveImage = () => {
         setProduct(prev => ({ ...prev, imageUrl: "" }));
         if (fileInputRef.current) {
@@ -102,6 +122,10 @@ function ProductEdit() {
         }
     };
 
+    /**
+     * HÀM SUBMIT FORM CẬP NHẬT SẢN PHẨM:
+     * - Gửi HTTP PUT request lên http://localhost:8080/api/products/{id}.
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -116,7 +140,7 @@ function ProductEdit() {
             });
 
             alert("✅ Cập nhật thông tin sản phẩm thành công!");
-            navigate(`/products/${id}`);
+            navigate(`/products/${id}`); // Chuyển sang trang xem chi tiết sản phẩm vừa cập nhật
         } catch (err) {
             console.error("Lỗi khi cập nhật sản phẩm:", err);
             setError("Lỗi khi cập nhật sản phẩm (Kiểm tra lại quyền ADMIN hoặc kết nối máy chủ)!");
@@ -168,7 +192,7 @@ function ProductEdit() {
                     <div className="field">
                         <label>Hình ảnh sản phẩm:</label>
 
-                        {/* Nút bấm chọn ảnh từ máy */}
+                        {/* Nút bấm chọn đổi ảnh từ máy */}
                         <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap" }}>
                             <label
                                 htmlFor="editFileInput"

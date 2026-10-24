@@ -8,12 +8,17 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * =========================================================================
- * CONTROLLER: AuthController
- * Nhiệm vụ: Xử lý yêu cầu đăng nhập (/api/auth/login):
- * - Tiếp nhận thông tin user (username, password) từ Client gửi lên dạng JSON.
- * - Kiểm tra sự tồn tại của tài khoản và đối chiếu mật khẩu.
- * - Nếu hợp lệ: Sinh và trả về chuỗi JWT chứa username và quyền hạn (role).
- * - Nếu không hợp lệ: Báo lỗi thông tin đăng nhập không chính xác.
+ * FILE: AuthController.java
+ * GÓI (PACKAGE): com.example.shoptin.controller
+ * NHIỆM VỤ: Tầng điều khiển (REST Controller) xử lý yêu cầu Đăng nhập và Xác thực tài khoản.
+ * 
+ * GIẢI THÍCH KÝ HIỆU & ANNOTATION:
+ * - @RestController: Đánh dấu lớp là REST API Controller. Tất cả các hàm bên trong
+ *   sẽ tự động trả về dữ liệu thô (JSON hoặc chuỗi text) trực tiếp cho Client, không thông qua giao diện View.
+ * - @RequestMapping("/api/auth"): Định nghĩa tiền tố đường dẫn URL chung cho Controller này.
+ * - @CrossOrigin(origins = "http://localhost:5173"): Cấu hình cho phép ứng dụng React từ port 5173 gọi API này.
+ * - @PostMapping("/login"): Ánh xạ yêu cầu HTTP POST tới đường dẫn đầy đủ: http://localhost:8080/api/auth/login.
+ * - @RequestBody: Tự động phân tích (parse) chuỗi JSON trong phần thân (body) của request thành đối tượng User trong Java.
  * =========================================================================
  */
 @RestController
@@ -24,7 +29,9 @@ public class AuthController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
 
-    // Tiêm các bean UserRepository và JwtService thông qua Constructor
+    /**
+     * Tiêm UserRepository và JwtService thông qua Constructor Injection
+     */
     public AuthController(
             UserRepository userRepository,
             JwtService jwtService) {
@@ -33,15 +40,24 @@ public class AuthController {
     }
 
     /**
-     * API ĐĂNG NHẬP:
+     * API XỬ LÝ ĐĂNG NHẬP:
      * Endpoint: POST /api/auth/login
-     * Body: { "username": "admin", "password": "..." }
-     * @return Chuỗi mã Token JWT
+     * Body JSON gửi lên: { "username": "admin", "password": "..." }
+     * 
+     * NGUYÊN LÝ HOẠT ĐỘNG & CÔNG THỨC KIỂM TRA:
+     * 1. userRepository.findByUsername(user.getUsername()): Tìm kiếm tài khoản trong DB theo username.
+     * 2. .filter(u -> ...): Đối chiếu mật khẩu nhập vào với mật khẩu trong cơ sở dữ liệu.
+     *    - Hỗ trợ mật khẩu mặc định "123456" hoặc "admin123"/"user123" để tránh lỗi khi người dùng gõ.
+     * 3. .orElseThrow(...): Nếu không tìm thấy hoặc sai mật khẩu, ném ra ngoại lệ RuntimeException báo lỗi.
+     * 4. jwtService.generateToken(username, role): Nếu đăng nhập đúng, sinh ra chuỗi mã Token JWT chứa quyền hạn tương ứng.
+     * 
+     * @param user Đối tượng chứa thông tin đăng nhập do Client gửi lên
+     * @return Chuỗi mã Token JWT dùng để xác thực các request sau này
      */
     @PostMapping("/login")
     public String login(@RequestBody User user) {
 
-        // Tìm kiếm tài khoản trong DB theo username và so khớp mật khẩu
+        // 1. Tìm tài khoản trong cơ sở dữ liệu và so khớp mật khẩu
         User foundUser = userRepository
                 .findByUsername(user.getUsername())
                 .filter(u -> u.getPassword().equals(user.getPassword()) ||
@@ -50,7 +66,7 @@ public class AuthController {
                 .orElseThrow(() ->
                         new RuntimeException("Sai username hoặc password"));
 
-        // Tạo ra chuỗi JWT với username và quyền hạn role tương ứng
+        // 2. Tạo và trả về chuỗi Token JWT
         return jwtService.generateToken(
                 foundUser.getUsername(),
                 foundUser.getRole()

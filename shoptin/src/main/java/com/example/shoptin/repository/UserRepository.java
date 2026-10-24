@@ -9,21 +9,35 @@ import java.util.Optional;
 /**
  * =========================================================================
  * FILE: UserRepository.java
- * NHIỆM VỤ: Tầng giao tiếp cơ sở dữ liệu (DAO) cho bảng "users".
- * NGUYÊN LÝ: Kế thừa JpaRepository<User, Integer> để có sẵn toàn bộ hàm CRUD.
+ * GÓI (PACKAGE): com.example.shoptin.repository
+ * NHIỆM VỤ: Tầng truy xuất dữ liệu (Data Access Layer / DAO) cho bảng "users".
+ * 
+ * GIẢI THÍCH KÝ HIỆU & ANNOTATION:
+ * - @Repository: Khai báo lớp này là một Spring Data Repository component.
+ * - extends JpaRepository<User, Long>:
+ *   + User: Kiểu thực thể mà Repository này quản lý.
+ *   + Long: Kiểu dữ liệu của khóa chính (@Id) trong lớp User.
+ *   + Khi kế thừa JpaRepository, Spring Data JPA tự động cung cấp sẵn hàng chục hàm:
+ *     findAll(), findById(), save(), deleteById(), count(), existsById(),... mà không cần viết một dòng SQL nào!
  * =========================================================================
  */
-@Repository // Khai báo tầng Repository của Spring
+@Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
-     * Tìm tài khoản theo username.
-     * Trả về Optional<User> để tránh lỗi NullPointerException khi không tìm thấy.
+     * TÌM KIẾM NGƯỜI DÙNG THEO TÊN ĐĂNG NHẬP (USERNAME):
+     * CÔNG THỨC QUY ƯỚC ĐẶT TÊN CỦA SPRING DATA JPA:
+     * - "findBy" + "Username" (tên thuộc tính)
+     * - Spring tự động phân tích và sinh ra câu lệnh SQL tương đương:
+     *   SELECT * FROM users WHERE username = ?;
+     * 
+     * GIẢI THÍCH KIỂU TRẢ VỀ Optional<User>:
+     * - Optional là một lớp đóng gói trong Java 8+ giúp xử lý trường hợp đối tượng có thể bị NULL.
+     * - Tránh hoàn toàn lỗi kinh điển NullPointerException khi người dùng nhập sai username.
+     * - Hỗ trợ các phương thức tiện ích: .isEmpty(), .isPresent(), .filter(), .orElseThrow().
+     * 
+     * @param username Tên đăng nhập cần tìm
+     * @return Optional chứa User nếu tìm thấy, hoặc Optional rỗng nếu không có
      */
     Optional<User> findByUsername(String username);
-
-    /**
-     * Kiểm tra xem tên username này đã tồn tại trong DB chưa.
-     */
-    boolean existsByUsername(String username);
 }

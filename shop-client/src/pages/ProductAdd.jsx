@@ -4,27 +4,50 @@ import { createProduct } from "../services/productService";
 
 /**
  * =========================================================================
- * TRANG THÊM SẢN PHẨM: ProductAdd.jsx (Chỉ dành cho ADMIN)
- * - Cho phép:
- *   1. Chọn ảnh trực tiếp từ máy tính (File Picker / FileReader Base64).
- *   2. Dán link URL ảnh từ mạng Internet.
- *   3. Xem trước (Preview) hình ảnh tức thì.
+ * FILE: ProductAdd.jsx
+ * THƯ MỤC: src/pages/
+ * NHIỆM VỤ: Giao diện Form Thêm Sản Phẩm Mới (Dành riêng cho ADMIN).
+ * 
+ * GIẢI THÍCH KÝ HIỆU & REACT HOOKS:
+ * - useRef(null): Tạo một tham chiếu trực tiếp đến phần tử DOM (trong bài này là thẻ <input type="file" />)
+ *   để dễ dàng đặt lại (reset) giá trị file input khi người dùng bấm nút "Xóa ảnh".
+ * - FileReader API: Giao diện chuẩn của trình duyệt Web dùng để đọc nội dung file từ máy tính người dùng một cách bất đồng bộ.
+ * 
+ * CÔNG THỨC NÉN & GIẢM KÍCH THƯỚC ẢNH BẰNG HTML5 CANVAS:
+ * - maxDim = 600 (Kích thước cạnh lớn nhất tối đa 600 pixel).
+ * - CÔNG THỨC BẢO TOÀN TỈ LỆ KHUNG HÌNH (Aspect Ratio):
+ *   + Nếu Chiều rộng (w) > Chiều cao (h) và w > 600:
+ *     Chiều cao mới = Math.round((h * 600) / w); Chiều rộng mới = 600;
+ *   + Ngược lại nếu Chiều cao (h) > 600:
+ *     Chiều rộng mới = Math.round((w * 600) / h); Chiều cao mới = 600;
+ * - canvas.toDataURL("image/jpeg", 0.85): Nén chất lượng 85% sang chuỗi Base64.
+ *   => Giúp giảm dung lượng từ 5MB xuống chỉ còn khoảng ~30KB-50KB, lưu vào Database siêu nhanh!
  * =========================================================================
  */
 function ProductAdd() {
-    const navigate = useNavigate();
-    const fileInputRef = useRef(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const navigate = useNavigate();      // Hook điều hướng trang
+    const fileInputRef = useRef(null);   // Tham chiếu thẻ input file
 
+    // 1. CÁC BIẾN TRẠNG THÁI (STATES):
+    const [submitting, setSubmitting] = useState(false); // Trạng thái đang gửi form
+    const [error, setError] = useState("");              // Thông báo lỗi
+
+    // State lưu toàn bộ dữ liệu form sản phẩm
     const [product, setProduct] = useState({
         name: "",
         price: "",
         quantity: "",
         description: "",
-        imageUrl: ""
+        imageUrl: "" // Chứa đường link URL hoặc chuỗi Base64
     });
 
+    /**
+     * HÀM CẬP NHẬT DỮ LIỆU INPUT:
+     * CÔNG THỨC: [e.target.name]: e.target.value
+     * Sử dụng Computed Property Name trong ES6 để cập nhật linh hoạt bất kỳ trường nào theo tên 'name' của thẻ input.
+     * 
+     * @param {Event} e Sự kiện Change của thẻ input
+     */
     const handleChange = (e) => {
         setProduct({
             ...product,
@@ -32,14 +55,22 @@ function ProductAdd() {
         });
     };
 
-    // Xử lý chọn ảnh từ máy tính (chuyển sang chuỗi Base64)
+    /**
+     * HÀM XỬ LÝ CHỌN FILE ẢNH TỪ MÁY TÍNH:
+     * 1. Đọc file người dùng vừa chọn từ ổ cứng.
+     * 2. Sử dụng FileReader nạp vào đối tượng Image.
+     * 3. Vẽ lên thẻ ảo Canvas để thu nhỏ kích thước (tối đa 600px).
+     * 4. Chuyển đổi thành chuỗi Base64 (data:image/jpeg;base64,...) gán vào state imageUrl.
+     * 
+     * @param {Event} e Sự kiện Change khi chọn file
+     */
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Kiểm tra định dạng file
+        // Kiểm tra loại file có phải là hình ảnh không
         if (!file.type.startsWith("image/")) {
-            alert("Vui lòng chọn một file hình ảnh (PNG, JPG, JPEG, WEBP)!");
+            alert("Vui lòng chọn một file hình ảnh hợp lệ (PNG, JPG, JPEG, WEBP)!");
             return;
         }
 
@@ -47,11 +78,13 @@ function ProductAdd() {
         reader.onload = (event) => {
             const img = new Image();
             img.onload = () => {
-                // Tối ưu hóa kích thước ảnh (tối đa 600px) để lưu database nhẹ và mượt mà
+                // Tạo thẻ ảo canvas để xử lý nén kích thước ảnh
                 const canvas = document.createElement("canvas");
                 const maxDim = 600;
                 let w = img.width;
                 let h = img.height;
+
+                // Áp dụng công thức bảo toàn tỉ lệ khung hình
                 if (w > h && w > maxDim) {
                     h = Math.round((h * maxDim) / w);
                     w = maxDim;
@@ -59,11 +92,13 @@ function ProductAdd() {
                     w = Math.round((w * maxDim) / h);
                     h = maxDim;
                 }
+
                 canvas.width = w;
                 canvas.height = h;
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, w, h);
 
+                // Xuất chuỗi Base64 với chất lượng 85%
                 const base64 = canvas.toDataURL(file.type || "image/jpeg", 0.85);
                 setProduct(prev => ({ ...prev, imageUrl: base64 }));
             };
@@ -72,7 +107,10 @@ function ProductAdd() {
         reader.readAsDataURL(file);
     };
 
-    // Xóa ảnh đã chọn
+    /**
+     * HÀM XÓA HÌNH ẢNH ĐÃ CHỌN:
+     * Đặt lại imageUrl về rỗng và reset giá trị của thẻ input file trên DOM.
+     */
     const handleRemoveImage = () => {
         setProduct(prev => ({ ...prev, imageUrl: "" }));
         if (fileInputRef.current) {
@@ -80,6 +118,15 @@ function ProductAdd() {
         }
     };
 
+    /**
+     * HÀM XỬ LÝ SUBMIT FORM LƯU SẢN PHẨM:
+     * CÔNG THỨC:
+     * - Number(product.price): Ép kiểu chuỗi số sang số thực double.
+     * - Number(product.quantity): Ép kiểu chuỗi số sang số nguyên int.
+     * - Gọi createProduct() gửi request POST lên Spring Boot.
+     * 
+     * @param {Event} e Sự kiện Submit của Form
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -94,7 +141,7 @@ function ProductAdd() {
             });
 
             alert("✅ Thêm sản phẩm mới thành công!");
-            navigate("/products");
+            navigate("/products"); // Chuyển về danh sách sản phẩm
         } catch (err) {
             console.error("Lỗi khi thêm sản phẩm:", err);
             setError("Không thể thêm sản phẩm (Vui lòng kiểm tra quyền ADMIN hoặc kết nối mạng)!");
@@ -179,7 +226,7 @@ function ProductAdd() {
                             }}
                         />
 
-                        {/* Gợi ý một số link ảnh mẫu để test nhanh */}
+                        {/* Gợi ý link ảnh mẫu */}
                         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
                             <span style={{ fontSize: "0.8rem", color: "var(--muted)", alignSelf: "center" }}>
                                 Ảnh mẫu:

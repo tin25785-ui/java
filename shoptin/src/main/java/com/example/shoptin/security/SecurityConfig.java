@@ -15,15 +15,14 @@ import java.util.Arrays;
 
 /**
  * =========================================================================
- * CẤU HÌNH BẢO MẬT: SecurityConfig
- * Nhiệm vụ:
- * 1. Cấu hình CORS cho phép React (port 5173) gọi API Spring Boot (port 8080).
- * 2. Vô hiệu hóa CSRF vì dùng REST API không lưu trạng thái (Stateless).
- * 3. Phân quyền chi tiết:
- *    - /api/auth/login : Tự do truy cập không cần đăng nhập (permitAll).
- *    - POST, PUT, DELETE /api/products/** : Chỉ dành cho "ADMIN" (hasAuthority("ADMIN")).
- *    - GET /api/products/** : Cả "USER" và "ADMIN" đều được xem (hasAnyAuthority("USER", "ADMIN")).
- * 4. Chèn bộ lọc JwtFilter trước UsernamePasswordAuthenticationFilter.
+ * FILE: SecurityConfig.java
+ * GÓI (PACKAGE): com.example.shoptin.security
+ * NHIỆM VỤ: Lớp cấu hình trung tâm của toàn bộ hệ thống bảo mật Spring Security 6.
+ * 
+ * GIẢI THÍCH KÝ HIỆU & ANNOTATION:
+ * - @Configuration: Đánh dấu lớp chứa các thiết lập cấu hình Bean cho Spring Container.
+ * - @Bean: Khai báo phương thức trả về một Spring Bean được quản lý vòng đời tự động.
+ * - SecurityFilterChain: Chuỗi các bộ lọc bảo vệ kiểm soát mọi đường dẫn HTTP Request.
  * =========================================================================
  */
 @Configuration
@@ -31,11 +30,42 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
 
-    // Tiêm JwtFilter vào cấu hình bảo mật
+    /**
+     * Tiêm đối tượng JwtFilter vào cấu hình
+     */
     public SecurityConfig(JwtFilter jwtFilter) {
         this.jwtFilter = jwtFilter;
     }
 
+    /**
+     * CẤU HÌNH BỘ LỌC BẢO MẬT (SecurityFilterChain):
+     * 
+     * GIẢI THÍCH TỪNG THÀNH PHẦN & CÔNG THỨC:
+     * 1. .cors(cors -> cors.configurationSource(corsConfigurationSource())):
+     *    - Cho phép chia sẻ tài nguyên chéo nguồn (Cross-Origin Resource Sharing) giữa React (port 5173) và Spring Boot (port 8080).
+     * 
+     * 2. .csrf(csrf -> csrf.disable()):
+     *    - Vô hiệu hóa chống giả mạo request liên trang (CSRF - Cross-Site Request Forgery)
+     *    - Lý do: Ứng dụng là RESTful API không sử dụng Cookie Session mà dùng JWT Token gửi trong Header nên miễn nhiễm với CSRF.
+     * 
+     * 3. .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)):
+     *    - Thiết lập chế độ phi trạng thái (Stateless). Máy chủ hoàn toàn không lưu trữ Session trong bộ nhớ RAM,
+     *      mỗi một request gửi lên đều độc lập và tự mang theo Token JWT để xác thực.
+     * 
+     * 4. .authorizeHttpRequests(auth -> auth ...):
+     *    - Phân quyền chi tiết cho từng đường dẫn URL:
+     *      + OPTIONS /** : permitAll() -> Cho phép trình duyệt gửi request kiểm tra CORS (Preflight).
+     *      + /api/auth/login : permitAll() -> Cho phép truy cập tự do để người dùng đăng nhập.
+     *      + POST, PUT, DELETE /api/products/** : hasAuthority("ADMIN") -> CHỈ CÓ ADMIN mới có quyền Thêm, Sửa, Xóa!
+     *      + GET /api/products/** : hasAnyAuthority("USER", "ADMIN") -> CẢ ADMIN VÀ USER đều có quyền Xem danh sách và Chi tiết!
+     *      + anyRequest().authenticated() -> Tất cả các API còn lại đều bắt buộc phải đăng nhập.
+     * 
+     * 5. .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class):
+     *    - Đặt bộ lọc JwtFilter của chúng ta chạy trước bộ lọc UsernamePassword mặc định của Spring Security.
+     * 
+     * @param http đối tượng cấu hình bảo mật HttpSecurity
+     * @return Chuỗi SecurityFilterChain hoàn chỉnh
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -43,38 +73,37 @@ public class SecurityConfig {
             // 1. Kích hoạt cấu hình CORS từ bean corsConfigurationSource phía dưới
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-            // 2. Vô hiệu hóa chống giả mạo request liên trang (CSRF)
+            // 2. Tắt CSRF vì ứng dụng dùng cơ chế xác thực Token phi trạng thái
             .csrf(csrf -> csrf.disable())
 
-            // 3. Chế độ phiên làm việc không trạng thái (STATELESS) vì sử dụng JWT
+            // 3. Quản lý phiên làm việc theo cơ chế Stateless (Không lưu Session)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(
                     SessionCreationPolicy.STATELESS
                 )
             )
 
-            // 4. Định nghĩa quy tắc phân quyền cho từng đường dẫn (URL)
+            // 4. Định nghĩa quy tắc phân quyền truy cập
             .authorizeHttpRequests(auth -> auth
-                // Cho phép tất cả các request OPTIONS (Preflight của trình duyệt) đi qua tự do
+                // Cho phép tất cả request kiểm tra CORS (OPTIONS) đi qua tự do
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // Cho phép gọi API đăng nhập tự do
                 .requestMatchers("/api/auth/login", "/api/auth/**").permitAll()
 
-                // Phân quyền chi tiết cho API Sản phẩm dùng hasAuthority:
-                // CHỈ CÓ ADMIN MỚI ĐƯỢC: THÊM (POST), SỬA (PUT), XÓA (DELETE)
+                // Phân quyền cho ADMIN: Thêm (POST), Sửa (PUT), Xóa (DELETE)
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasAuthority("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAuthority("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAuthority("ADMIN")
 
-                // CẢ USER VÀ ADMIN ĐỀU ĐƯỢC XEM (GET) SẢN PHẨM
+                // Phân quyền Xem (GET): Cả USER và ADMIN đều được phép
                 .requestMatchers(HttpMethod.GET, "/api/products/**").hasAnyAuthority("USER", "ADMIN")
 
-                // Tất cả các API khác còn lại bắt buộc phải đăng nhập
+                // Tất cả các yêu cầu còn lại bắt buộc phải có Token hợp lệ
                 .anyRequest().authenticated()
             )
 
-            // 5. Gắn bộ lọc JwtFilter trước bộ lọc đăng nhập mặc định
+            // 5. Chèn bộ lọc JwtFilter trước bộ lọc đăng nhập mặc định
             .addFilterBefore(
                 jwtFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -83,17 +112,21 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Bean cấu hình CORS chi tiết để chấp nhận request từ React (port 5173)
+    /**
+     * BEAN CẤU HÌNH CORS (Cross-Origin Resource Sharing):
+     * - Mặc định trình duyệt chặn các request gọi giữa 2 cổng khác nhau (port 5173 gọi sang port 8080).
+     * - Cấu hình này mở cổng cho phép React gửi request:
+     *   + Origins: http://localhost:5173
+     *   + Methods: GET, POST, PUT, DELETE, OPTIONS
+     *   + Headers: Cho phép tất cả (*)
+     *   + AllowCredentials: Cho phép gửi kèm thông tin ủy quyền
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Cho phép frontend React từ port 5173
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-        // Cho phép các phương thức HTTP
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Cho phép tất cả các tiêu đề headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        // Cho phép gửi kèm thông tin xác thực
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
