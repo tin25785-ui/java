@@ -5,11 +5,16 @@ import { getProductById, updateProduct } from "../services/productService";
 /**
  * =========================================================================
  * TRANG SỬA SẢN PHẨM: ProductEdit.jsx (Chỉ dành cho ADMIN)
+ * - Tự động tải thông tin sản phẩm theo ID để người dùng chỉnh sửa
+ * - Form nhập liệu bo góc, chia 2 cột cho Đơn giá và Số lượng
  * =========================================================================
  */
 function ProductEdit() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState("");
 
     const [product, setProduct] = useState({
         name: "",
@@ -21,10 +26,20 @@ function ProductEdit() {
     useEffect(() => {
         getProductById(id)
             .then(response => {
-                setProduct(response.data);
+                if (response.data) {
+                    setProduct({
+                        name: response.data.name || "",
+                        price: response.data.price || "",
+                        quantity: response.data.quantity || "",
+                        description: response.data.description || ""
+                    });
+                }
+                setLoading(false);
             })
-            .catch(error => {
-                console.error("Lỗi khi nạp dữ liệu sửa sản phẩm:", error);
+            .catch(err => {
+                console.error("Lỗi khi nạp dữ liệu sửa sản phẩm:", err);
+                setError("Không tìm thấy thông tin sản phẩm cần sửa!");
+                setLoading(false);
             });
     }, [id]);
 
@@ -37,6 +52,8 @@ function ProductEdit() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError("");
+        setSubmitting(true);
 
         try {
             await updateProduct(id, {
@@ -45,73 +62,105 @@ function ProductEdit() {
                 quantity: Number(product.quantity)
             });
 
-            alert("Cập nhật sản phẩm thành công");
+            alert("✅ Cập nhật thông tin sản phẩm thành công!");
             navigate(`/products/${id}`);
         } catch (err) {
             console.error("Lỗi khi cập nhật sản phẩm:", err);
-            alert("Lỗi khi cập nhật sản phẩm (Kiểm tra lại quyền ADMIN)");
+            setError("Lỗi khi cập nhật sản phẩm (Kiểm tra lại quyền ADMIN hoặc kết nối máy chủ)!");
+        } finally {
+            setSubmitting(false);
         }
     };
 
+    if (loading) {
+        return (
+            <div className="page">
+                <div className="card narrow loading">
+                    ⏳ Đang tải thông tin sản phẩm cần sửa...
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div>
-            <h2>Sửa sản phẩm</h2>
-
-            <form onSubmit={handleSubmit} style={{ maxWidth: "400px" }}>
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ display: "block" }}>Tên sản phẩm:</label>
-                    <input
-                        name="name"
-                        value={product.name}
-                        onChange={handleChange}
-                        required
-                        style={{ width: "100%", padding: "6px" }}
-                    />
+        <div className="page">
+            <div className="card narrow">
+                <div className="card-head">
+                    <div>
+                        <h2>Chỉnh Sửa Sản Phẩm #{id}</h2>
+                        <p className="card-subtitle">Cập nhật thông tin sản phẩm trong kho hàng</p>
+                    </div>
+                    <span className="badge-role badge-admin">Chỉ ADMIN</span>
                 </div>
 
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ display: "block" }}>Giá:</label>
-                    <input
-                        name="price"
-                        type="number"
-                        value={product.price}
-                        onChange={handleChange}
-                        required
-                        style={{ width: "100%", padding: "6px" }}
-                    />
-                </div>
+                {error && (
+                    <div className="alert alert-danger">
+                        ⚠️ {error}
+                    </div>
+                )}
 
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ display: "block" }}>Số lượng:</label>
-                    <input
-                        name="quantity"
-                        type="number"
-                        value={product.quantity}
-                        onChange={handleChange}
-                        required
-                        style={{ width: "100%", padding: "6px" }}
-                    />
-                </div>
+                <form onSubmit={handleSubmit} className="form">
+                    <div className="field">
+                        <label htmlFor="name">Tên sản phẩm (*):</label>
+                        <input
+                            id="name"
+                            name="name"
+                            value={product.name}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
 
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ display: "block" }}>Mô tả:</label>
-                    <input
-                        name="description"
-                        value={product.description || ""}
-                        onChange={handleChange}
-                        style={{ width: "100%", padding: "6px" }}
-                    />
-                </div>
+                    <div className="field-row">
+                        <div className="field">
+                            <label htmlFor="price">Đơn giá (VNĐ) (*):</label>
+                            <input
+                                id="price"
+                                name="price"
+                                type="number"
+                                min="0"
+                                value={product.price}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
 
-                <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
-                    <button type="submit">
-                        Cập nhật
-                    </button>
-                    <Link to="/products" style={{ alignSelf: "center" }}>
-                        Hủy bỏ
-                    </Link>
-                </div>
-            </form>
+                        <div className="field">
+                            <label htmlFor="quantity">Số lượng tồn kho (*):</label>
+                            <input
+                                id="quantity"
+                                name="quantity"
+                                type="number"
+                                min="0"
+                                value={product.quantity}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="field">
+                        <label htmlFor="description">Mô tả chi tiết sản phẩm:</label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="4"
+                            value={product.description}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className="actions" style={{ marginTop: "12px" }}>
+                        <button type="submit" className="btn btn-primary" disabled={submitting}>
+                            {submitting ? "Đang lưu thay đổi..." : "💾 Cập Nhật Sản Phẩm"}
+                        </button>
+
+                        <Link to={`/products/${id}`} className="btn btn-soft">
+                            Hủy bỏ
+                        </Link>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

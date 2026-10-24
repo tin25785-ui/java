@@ -7,15 +7,16 @@ import ProductDetail from "./pages/ProductDetail";
 import ProductEdit from "./pages/ProductEdit";
 import Login from "./pages/Login";
 import { getToken, getRole, logout } from "./services/authService";
+import "./App.css";
 
 /**
  * =========================================================================
  * COMPONENT CHÍNH: AppContent
- * - Bố cục header với điều hướng Trang chủ / Đăng nhập / Thoát
+ * - Giao diện thanh Topbar hiện đại, hiển thị thương hiệu và thông tin người dùng
  * - Định tuyến (Routes) bảo vệ phân quyền:
- *   + Chưa đăng nhập -> Chỉ vào được /login
- *   + USER & ADMIN   -> Vào được /products, /products/:id
- *   + Chỉ ADMIN      -> Vào được /products/add, /products/edit/:id
+ *   + Chưa đăng nhập -> Tự động chuyển hướng về /login
+ *   + USER & ADMIN   -> Được xem danh sách (/products) và chi tiết (/products/:id)
+ *   + Chỉ ADMIN      -> Được thêm (/products/add) và sửa (/products/edit/:id)
  * =========================================================================
  */
 function AppContent() {
@@ -51,42 +52,42 @@ function AppContent() {
     };
 
     return (
-        <>
-            <header style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "12px 24px",
-                borderBottom: "1px solid #ddd",
-                backgroundColor: "#fafafa"
-            }}>
-                <Link to="/login" style={{ textDecoration: "none", fontWeight: "bold", fontSize: "18px", color: "#333" }}>
-                    🏬 ShopTin
-                </Link>
+        <div className="app-container">
+            {/* Thanh điều hướng Topbar hiện đại */}
+            <header className="topbar">
+                <div className="topbar-inner">
+                    <div className="brand-group">
+                        <Link to="/products" style={{ textDecoration: "none" }}>
+                            <span className="brand">🛒 ShopTin</span>
+                        </Link>
+                        <span className="brand-tagline">Hệ thống Quản lý Sản phẩm & Xác thực JWT</span>
+                    </div>
 
-                <div>
-                    {token ? (
-                        <>
-                            <span style={{ marginRight: "12px", color: "#2563eb", fontWeight: "600" }}>
-                                👤 {username} {role && `(${role})`}
-                            </span>
-
-                            <button onClick={handleLogout} style={{ padding: "5px 12px", cursor: "pointer" }}>
-                                Thoát
+                    <div className="auth-box">
+                        {token ? (
+                            <div className="user-profile">
+                                <span className="user-name">👤 {username}</span>
+                                <span className={`badge-role ${role === "ADMIN" ? "badge-admin" : "badge-user"}`}>
+                                    {role === "ADMIN" ? "QUẢN TRỊ VIÊN" : "NGƯỜI DÙNG"}
+                                </span>
+                                <button onClick={handleLogout} className="btn-logout" title="Đăng xuất khỏi hệ thống">
+                                    Thoát
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => { navigate("/login?showLogin=true"); }}
+                                className="btn-login"
+                            >
+                                Đăng nhập
                             </button>
-                        </>
-                    ) : (
-                        <button
-                            onClick={() => { navigate("/login?showLogin=true"); }}
-                            style={{ padding: "5px 12px", cursor: "pointer" }}
-                        >
-                            Đăng nhập
-                        </button>
-                    )}
+                        )}
+                    </div>
                 </div>
             </header>
 
-            <main style={{ padding: "20px", maxWidth: "900px", margin: "0 auto" }}>
+            {/* Khu vực nội dung các trang */}
+            <main>
                 <Routes>
                     {/* Tuyến đường Đăng nhập */}
                     <Route
@@ -143,7 +144,7 @@ function AppContent() {
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </main>
-        </>
+        </div>
     );
 }
 

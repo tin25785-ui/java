@@ -1,10 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 /**
  * =========================================================================
- * TRANG ĐĂNG NHẬP: Login.jsx (Bố cục chuẩn theo dự án tham chiếu)
+ * TRANG ĐĂNG NHẬP: Login.jsx
+ * - Thiết kế Card hiện đại, căn giữa màn hình
+ * - Phím bấm nhanh tài khoản Admin/User để người dùng dễ kiểm tra
+ * - Tự động chuyển hướng khi đăng nhập thành công
  * =========================================================================
  */
 const API_LOGIN_URL = "http://localhost:8080/api/auth/login";
@@ -15,13 +18,7 @@ function Login({ onLoginSuccess, isLoggedIn }) {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-
-    // Tính toán trạng thái hiển thị form từ param ?showLogin=true
-    const showForm = useMemo(() => {
-        return searchParams ? searchParams.get("showLogin") === "true" : false;
-    }, [searchParams]);
 
     // Nếu đã đăng nhập thì tự động chuyển hướng sang danh sách sản phẩm
     useEffect(() => {
@@ -30,9 +27,9 @@ function Login({ onLoginSuccess, isLoggedIn }) {
         }
     }, [isLoggedIn, navigate]);
 
-    // Xử lý gửi yêu cầu đăng nhập lên backend
+    // Xử lý gửi yêu cầu đăng nhập
     const handleLogin = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (loading) return;
 
         setError("");
@@ -45,8 +42,8 @@ function Login({ onLoginSuccess, isLoggedIn }) {
             });
 
             // Lấy token dạng String hoặc Object
-            const token = response && response.data && typeof response.data === "string" 
-                ? response.data 
+            const token = response && response.data && typeof response.data === "string"
+                ? response.data
                 : response.data?.token;
 
             if (!token) {
@@ -58,124 +55,114 @@ function Login({ onLoginSuccess, isLoggedIn }) {
             if (typeof onLoginSuccess === "function") {
                 onLoginSuccess(token, username);
             }
-            
-            // Xóa query param sau khi đăng nhập thành công
-            searchParams.delete("showLogin");
-            setSearchParams(searchParams);
 
         } catch (err) {
             console.error("Lỗi đăng nhập:", err);
             if (err && err.response && err.response.status === 401) {
                 setError("Tài khoản hoặc mật khẩu không chính xác.");
             } else {
-                setError("Sai username hoặc password, hoặc không thể kết nối Backend!");
+                setError("Sai username hoặc password, hoặc chưa bật Backend Spring Boot!");
             }
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCancel = () => {
-        searchParams.delete("showLogin");
-        setSearchParams(searchParams);
+    // Hàm điền nhanh thông tin tài khoản mẫu
+    const handleQuickFill = (u, p) => {
+        setUsername(u);
+        setPassword(p);
         setError("");
-        setUsername("");
-        setPassword("");
     };
 
     if (isLoggedIn) {
-        return null; 
+        return null;
     }
 
     return (
-        <div style={{ textAlign: "center", marginTop: "40px" }}>
-            {!showForm ? (
-                <>
-                    <h2>Danh sách sản phẩm</h2>
-                    <p>Vui lòng đăng nhập để xem danh sách sản phẩm.</p>
-                    <button onClick={() => setSearchParams({ showLogin: "true" })}>
-                        Đi đến Đăng nhập
-                    </button>
-                </>
-            ) : (
-                <form
-                    onSubmit={handleLogin}
-                    style={{
-                        maxWidth: "350px",
-                        margin: "20px auto",
-                        padding: "20px",
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        textAlign: "left"
-                    }}
-                >
-                    <h3 style={{ marginTop: 0 }}>Đăng nhập</h3>
+        <div className="login-container">
+            <div className="card login-card">
+                <div className="login-header">
+                    <div className="login-icon">🔐</div>
+                    <h2>Đăng Nhập Hệ Thống</h2>
+                    <p className="login-subtitle">
+                        Vui lòng nhập tài khoản để quản lý và xem thông tin sản phẩm
+                    </p>
+                </div>
 
-                    <div style={{ marginBottom: "12px" }}>
-                        <label htmlFor="username" style={{ display: "block", marginBottom: "4px" }}>
-                            Username:
-                        </label>
+                {error && (
+                    <div className="alert alert-danger">
+                        ⚠️ {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleLogin} className="form">
+                    <div className="field">
+                        <label htmlFor="username">Tên đăng nhập (Username):</label>
                         <input
                             id="username"
                             type="text"
+                            placeholder="Nhập username..."
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             disabled={loading}
                             required
-                            style={{ width: "100%", padding: "6px", boxSizing: "border-box" }}
                         />
                     </div>
 
-                    <div style={{ marginBottom: "12px" }}>
-                        <label htmlFor="password" style={{ display: "block", marginBottom: "4px" }}>
-                            Password:
-                        </label>
+                    <div className="field">
+                        <label htmlFor="password">Mật khẩu (Password):</label>
                         <input
                             id="password"
                             type="password"
+                            placeholder="Nhập mật khẩu..."
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={loading}
                             required
-                            style={{ width: "100%", padding: "6px", boxSizing: "border-box" }}
                         />
                     </div>
 
-                    {/* Phím bấm nhanh tài khoản mặc định để thầy cô / bạn dễ test */}
-                    <div style={{ marginBottom: "12px", display: "flex", gap: "6px" }}>
-                        <button
-                            type="button"
-                            onClick={() => { setUsername("admin"); setPassword("123456"); }}
-                            style={{ fontSize: "11px", padding: "3px 6px", cursor: "pointer" }}
-                        >
-                            🔑 Điền Admin (123456)
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setUsername("user"); setPassword("123456"); }}
-                            style={{ fontSize: "11px", padding: "3px 6px", cursor: "pointer" }}
-                        >
-                            👤 Điền User (123456)
-                        </button>
-                    </div>
-
-                    {error && (
-                        <p style={{ color: "red", fontSize: "14px", marginBottom: "12px" }}>
-                            {error}
-                        </p>
-                    )}
-
-                    <div style={{ display: "flex", gap: "8px" }}>
-                        <button type="submit" disabled={loading}>
-                            {loading ? "Đang xử lý..." : "Đăng nhập"}
-                        </button>
-
-                        <button type="button" onClick={handleCancel} disabled={loading}>
-                            Hủy
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        className="btn btn-primary btn-block"
+                        disabled={loading}
+                        style={{ marginTop: "8px" }}
+                    >
+                        {loading ? "Đang xử lý đăng nhập..." : "Đăng Nhập Ngay"}
+                    </button>
                 </form>
-            )}
+
+                {/* Khu vực bấm nhanh tài khoản mặc định phục vụ chấm điểm và kiểm thử */}
+                <div className="quick-login-section">
+                    <p className="quick-title">⚡ Chọn nhanh tài khoản kiểm thử:</p>
+                    <div className="quick-buttons">
+                        <button
+                            type="button"
+                            className="btn-quick"
+                            onClick={() => handleQuickFill("admin", "123456")}
+                        >
+                            <span style={{ fontSize: "1.3rem" }}>👑</span>
+                            <div>
+                                <strong>Tài khoản ADMIN (admin / 123456)</strong>
+                                <small>Toàn quyền: Xem, Thêm mới, Sửa và Xóa sản phẩm</small>
+                            </div>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="btn-quick"
+                            onClick={() => handleQuickFill("user", "123456")}
+                        >
+                            <span style={{ fontSize: "1.3rem" }}>👤</span>
+                            <div>
+                                <strong>Tài khoản USER (user / 123456)</strong>
+                                <small>Quyền xem: Chỉ xem danh sách và chi tiết (ẩn nút sửa/xóa)</small>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
