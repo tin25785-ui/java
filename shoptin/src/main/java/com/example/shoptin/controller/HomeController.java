@@ -5,16 +5,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * =========================================================================
- * FILE: HomeController.java
- * NHIỆM VỤ: Endpoint gốc (Root URL) dùng để kiểm tra server có đang chạy không.
+ * CONTROLLER: HomeController
+ * Nhiệm vụ: Endpoint chào mừng đơn giản tại đường dẫn gốc "/"
  * =========================================================================
  */
 @RestController
 public class HomeController {
 
-    // GET http://localhost:8080/
     @GetMapping("/")
     public String home() {
-        return "Shoptin API is running!";
+        return "Hello Spring Boot!";
     }
 }

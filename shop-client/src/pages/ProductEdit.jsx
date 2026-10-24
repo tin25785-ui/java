@@ -1,19 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { getProductById, updateProduct } from "../services/productService";
-import ProductForm from "../components/ProductForm";
 
 /**
  * =========================================================================
- * FILE: ProductEdit.jsx
- * NHIỆM VỤ: Trang Chỉnh sửa thông tin sản phẩm theo mã ID.
- * BẢO VỆ: Được bọc trong <ProtectedRoute adminOnly={true}> tại App.jsx,
- * CHỈ CÓ TÀI KHOẢN ADMIN mới được phép truy cập vào màn hình này!
+ * TRANG SỬA SẢN PHẨM: ProductEdit.jsx (Chỉ dành cho ADMIN)
  * =========================================================================
  */
 function ProductEdit() {
-    const { id } = useParams(); // Lấy mã ID sản phẩm từ URL
+    const { id } = useParams();
     const navigate = useNavigate();
+
     const [product, setProduct] = useState({
         name: "",
         price: "",
@@ -21,19 +18,16 @@ function ProductEdit() {
         description: ""
     });
 
-    // Tải thông tin sản phẩm cũ nạp lên Form
     useEffect(() => {
         getProductById(id)
             .then(response => {
                 setProduct(response.data);
             })
             .catch(error => {
-                console.error(error);
-                alert("Không thể tải thông tin sản phẩm!");
+                console.error("Lỗi khi nạp dữ liệu sửa sản phẩm:", error);
             });
     }, [id]);
 
-    // Bắt sự kiện khi người dùng gõ vào các ô input
     const handleChange = (e) => {
         setProduct({
             ...product,
@@ -41,29 +35,83 @@ function ProductEdit() {
         });
     };
 
-    // Xử lý khi bấm nút Cập nhật
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         try {
-            // Gọi API PUT /api/products/{id}
             await updateProduct(id, {
                 ...product,
                 price: Number(product.price),
                 quantity: Number(product.quantity)
             });
+
             alert("Cập nhật sản phẩm thành công");
-            navigate(`/products/${id}`); // Chuyển sang xem chi tiết sản phẩm sau khi sửa
+            navigate(`/products/${id}`);
         } catch (err) {
-            console.error(err);
-            const msg = err.response?.data?.message || "Cập nhật sản phẩm thất bại!";
-            alert(msg);
+            console.error("Lỗi khi cập nhật sản phẩm:", err);
+            alert("Lỗi khi cập nhật sản phẩm (Kiểm tra lại quyền ADMIN)");
         }
     };
 
     return (
-        <div className="card narrow">
+        <div>
             <h2>Sửa sản phẩm</h2>
-            <ProductForm product={product} onChange={handleChange} onSubmit={handleSubmit} submitLabel="Cập nhật" />
+
+            <form onSubmit={handleSubmit} style={{ maxWidth: "400px" }}>
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Tên sản phẩm:</label>
+                    <input
+                        name="name"
+                        value={product.name}
+                        onChange={handleChange}
+                        required
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Giá:</label>
+                    <input
+                        name="price"
+                        type="number"
+                        value={product.price}
+                        onChange={handleChange}
+                        required
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Số lượng:</label>
+                    <input
+                        name="quantity"
+                        type="number"
+                        value={product.quantity}
+                        onChange={handleChange}
+                        required
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Mô tả:</label>
+                    <input
+                        name="description"
+                        value={product.description || ""}
+                        onChange={handleChange}
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+                    <button type="submit">
+                        Cập nhật
+                    </button>
+                    <Link to="/products" style={{ alignSelf: "center" }}>
+                        Hủy bỏ
+                    </Link>
+                </div>
+            </form>
         </div>
     );
 }

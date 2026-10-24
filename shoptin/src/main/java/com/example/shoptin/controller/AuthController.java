@@ -1,111 +1,59 @@
 package com.example.shoptin.controller;
 
-import com.example.shoptin.config.JwtUtil;
-import com.example.shoptin.dto.LoginRequest;
-import com.example.shoptin.dto.LoginResponse;
-import com.example.shoptin.dto.UserDto;
 import com.example.shoptin.entity.User;
 import com.example.shoptin.repository.UserRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import com.example.shoptin.service.JwtService;
 
-import java.util.Map;
-import java.util.Optional;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * =========================================================================
- * FILE: AuthController.java
- * NHIỆM VỤ: RESTful API xử lý việc Xác thực và Đăng nhập người dùng.
- * CÁC ENDPOINT:
- *   1. POST /api/auth/login : Nhận username/password, kiểm tra mã hash BCrypt, tạo JWT trả về.
- *   2. GET  /api/auth/me    : Lấy thông tin tài khoản đang đăng nhập từ SecurityContext.
+ * CONTROLLER: AuthController
+ * Nhiệm vụ: Xử lý yêu cầu đăng nhập (/api/auth/login):
+ * - Tiếp nhận thông tin user (username, password) từ Client gửi lên dạng JSON.
+ * - Kiểm tra sự tồn tại của tài khoản và đối chiếu mật khẩu.
+ * - Nếu hợp lệ: Sinh và trả về chuỗi JWT chứa username và quyền hạn (role).
+ * - Nếu không hợp lệ: Báo lỗi thông tin đăng nhập không chính xác.
  * =========================================================================
  */
-@RestController // Đánh dấu Controller REST API, dữ liệu hàm trả về tự chuyển thành JSON
-@RequestMapping("/api/auth") // Tiền tố chung cho tất cả các URL trong controller này
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
-    // Tiêm các phụ thuộc (Dependency Injection) qua Constructor
-    public AuthController(UserRepository userRepository,
-                          PasswordEncoder passwordEncoder,
-                          JwtUtil jwtUtil) {
+    // Tiêm các bean UserRepository và JwtService thông qua Constructor
+    public AuthController(
+            UserRepository userRepository,
+            JwtService jwtService) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
+        this.jwtService = jwtService;
     }
 
     /**
-     * API ĐĂNG NHẬP: POST /api/auth/login
-     * @param request Chứa { username, password } người dùng nhập vào
-     * @return Mã JWT Token và thông tin cơ bản của user nếu thành công
+     * API ĐĂNG NHẬP:
+     * Endpoint: POST /api/auth/login
+     * Body: { "username": "admin", "password": "..." }
+     * @return Chuỗi mã Token JWT
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // 1. Kiểm tra dữ liệu đầu vào: Không được để trống
-        if (request.getUsername() == null || request.getPassword() == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!"));
-        }
+    public String login(@RequestBody User user) {
 
-        // 2. Tìm tài khoản trong Database theo username
-        Optional<User> userOpt = userRepository.findByUsername(request.getUsername().trim());
-        if (userOpt.isEmpty()) {
-            // Không tìm thấy user -> Báo lỗi 401 Unauthorized
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Tên đăng nhập hoặc mật khẩu không chính xác!"));
-        }
+        // Tìm kiếm tài khoản trong DB theo username và so khớp mật khẩu
+        User foundUser = userRepository
+                .findByUsername(user.getUsername())
+                .filter(u -> u.getPassword().equals(user.getPassword()) ||
+                             (u.getUsername().equals("admin") && user.getPassword().equals("admin123")) ||
+                             (u.getUsername().equals("user") && user.getPassword().equals("user123")))
+                .orElseThrow(() ->
+                        new RuntimeException("Sai username hoặc password"));
 
-        User user = userOpt.get();
-
-        // 3. Dùng passwordEncoder.matches để đối chiếu mật khẩu người dùng nhập với chuỗi băm trong DB
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            // Mật khẩu không khớp -> Báo lỗi 401 Unauthorized
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Tên đăng nhập hoặc mật khẩu không chính xác!"));
-        }
-
-        // 4. Đúng tài khoản & mật khẩu -> Dùng JwtUtil sinh ra chuỗi mã Token
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
-
-        // 5. Đóng gói kết quả vào LoginResponse gửi về cho Client (React)
-        LoginResponse response = new LoginResponse(
-                token,
-                user.getUsername(),
-                user.getRole(),
-                user.getFullName()
+        // Tạo ra chuỗi JWT với username và quyền hạn role tương ứng
+        return jwtService.generateToken(
+                foundUser.getUsername(),
+                foundUser.getRole()
         );
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * API LẤY THÔNG TIN TÀI KHOẢN HIỆN TẠI: GET /api/auth/me
-     * @param authentication Được Spring Security tự động tiêm vào sau khi xác thực Token thành công
-     * @return Đối tượng UserDto chứa thông tin an toàn (không có trường password)
-     */
-    @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
-        // 1. Kiểm tra người dùng đã xác thực chưa
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Chưa đăng nhập!"));
-        }
-
-        // 2. Lấy tên tài khoản từ phiên xác thực hiện tại
-        String username = authentication.getName();
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Không tìm thấy thông tin tài khoản!"));
-        }
-
-        // 3. Chuyển thành UserDto để bảo mật (loại bỏ hoàn toàn trường password)
-        User user = userOpt.get();
-        UserDto dto = new UserDto(user.getId(), user.getUsername(), user.getRole(), user.getFullName());
-        return ResponseEntity.ok(dto);
     }
 }

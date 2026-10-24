@@ -1,40 +1,44 @@
-import api from "./api";
+import axios from "axios";
 
 /**
  * =========================================================================
- * FILE: productService.js
- * NHIỆM VỤ: Tập hợp các hàm gọi RESTful API sản phẩm sang Backend.
- * ĐẶC BIỆT: Tất cả các hàm này dùng thể hiện "api" (từ api.js), do đó
- * đều TỰ ĐỘNG được đính kèm JWT Token vào Header mà không cần truyền tay!
+ * SERVICE: productService.js
+ * Quản lý gọi API Sản phẩm đến Backend Spring Boot (port 8080)
  * =========================================================================
  */
+const API_URL = "http://localhost:8080/api/products";
 
-// 1. Lấy toàn bộ danh sách sản phẩm (GET /api/products)
+// Hàm tiện ích tự động gắn Bearer Token vào header Authorization
+const getAuthConfig = () => {
+    const token = localStorage.getItem("token");
+    return {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
+};
+
+// 1. Lấy danh sách sản phẩm
 export const getProducts = () => {
-    return api.get("/products");
+    return axios.get(API_URL, getAuthConfig());
 };
 
-// 2. Tìm kiếm sản phẩm theo tên (GET /api/products/search?name=...)
-export const searchProducts = (name) => {
-    return api.get(`/products/search?name=${encodeURIComponent(name)}`);
-};
-
-// 3. Xem chi tiết 1 sản phẩm theo ID (GET /api/products/{id})
+// 2. Lấy chi tiết sản phẩm theo ID
 export const getProductById = (id) => {
-    return api.get(`/products/${id}`);
+    return axios.get(`${API_URL}/${id}`, getAuthConfig());
 };
 
-// 4. Thêm sản phẩm mới (POST /api/products) - Chỉ ADMIN gọi thành công
+// 3. Thêm mới sản phẩm (Dành riêng cho ADMIN)
 export const createProduct = (product) => {
-    return api.post("/products", product);
+    return axios.post(API_URL, product, getAuthConfig());
 };
 
-// 5. Cập nhật thông tin sản phẩm (PUT /api/products/{id}) - Chỉ ADMIN gọi thành công
+// 4. Cập nhật thông tin sản phẩm (Dành riêng cho ADMIN)
 export const updateProduct = (id, product) => {
-    return api.put(`/products/${id}`, product);
+    return axios.put(`${API_URL}/${id}`, product, getAuthConfig());
 };
 
-// 6. Xóa sản phẩm theo ID (DELETE /api/products/{id}) - Chỉ ADMIN gọi thành công
+// 5. Xóa sản phẩm (Dành riêng cho ADMIN)
 export const deleteProduct = (id) => {
-    return api.delete(`/products/${id}`);
+    return axios.delete(`${API_URL}/${id}`, getAuthConfig());
 };

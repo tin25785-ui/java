@@ -1,82 +1,146 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Header from "./components/Header";
-import LoginPage from "./pages/LoginPage";
+import { useState } from "react";
+import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
+
 import ProductList from "./pages/ProductList";
 import ProductAdd from "./pages/ProductAdd";
 import ProductDetail from "./pages/ProductDetail";
 import ProductEdit from "./pages/ProductEdit";
-import "./App.css";
+import Login from "./pages/Login";
+import { getToken, getRole, logout } from "./services/authService";
 
 /**
  * =========================================================================
- * FILE: App.jsx
- * NHIỆM VỤ: Cấu hình cây điều hướng toàn diện (React Router) cho ứng dụng SPA.
- * NGUYÊN LÝ HOẠT ĐỘNG:
- *   1. Bọc trong <AuthProvider> để chia sẻ trạng thái đăng nhập cho toàn bộ ứng dụng.
- *   2. Header luôn hiển thị ở trên cùng.
- *   3. Phân quyền Router:
- *      - /login : Công khai cho mọi người.
- *      - /products & /products/:id : Bọc ProtectedRoute (phải đăng nhập, USER và ADMIN đều vào được).
- *      - /products/add & /products/edit/:id : Bọc ProtectedRoute với adminOnly={true} (chỉ ADMIN).
+ * COMPONENT CHÍNH: AppContent
+ * - Bố cục header với điều hướng Trang chủ / Đăng nhập / Thoát
+ * - Định tuyến (Routes) bảo vệ phân quyền:
+ *   + Chưa đăng nhập -> Chỉ vào được /login
+ *   + USER & ADMIN   -> Vào được /products, /products/:id
+ *   + Chỉ ADMIN      -> Vào được /products/add, /products/edit/:id
  * =========================================================================
  */
-function AppRoutes() {
+function AppContent() {
+    const [token, setToken] = useState(getToken());
+    const [username, setUsername] = useState(() => {
+        const saved = localStorage.getItem("username");
+        return saved || "";
+    });
+
+    const navigate = useNavigate();
+    const role = getRole();
+
+    // Xử lý sau khi đăng nhập thành công
+    const handleLoginSuccess = (newToken, newUsername) => {
+        localStorage.setItem("token", newToken);
+        localStorage.setItem("username", newUsername);
+
+        setToken(newToken);
+        setUsername(newUsername);
+
+        navigate("/products");
+    };
+
+    // Xử lý đăng xuất tài khoản
+    const handleLogout = () => {
+        logout();
+        localStorage.removeItem("username");
+
+        setToken(null);
+        setUsername("");
+
+        navigate("/login");
+    };
+
     return (
         <>
-            {/* Thanh điều hướng Topbar phía trên cùng */}
-            <Header />
+            <header style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 24px",
+                borderBottom: "1px solid #ddd",
+                backgroundColor: "#fafafa"
+            }}>
+                <Link to="/login" style={{ textDecoration: "none", fontWeight: "bold", fontSize: "18px", color: "#333" }}>
+                    🏬 ShopTin
+                </Link>
 
-            {/* Vùng nội dung trang thay đổi theo URL */}
-            <main className="page">
+                <div>
+                    {token ? (
+                        <>
+                            <span style={{ marginRight: "12px", color: "#2563eb", fontWeight: "600" }}>
+                                👤 {username} {role && `(${role})`}
+                            </span>
+
+                            <button onClick={handleLogout} style={{ padding: "5px 12px", cursor: "pointer" }}>
+                                Thoát
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => { navigate("/login?showLogin=true"); }}
+                            style={{ padding: "5px 12px", cursor: "pointer" }}
+                        >
+                            Đăng nhập
+                        </button>
+                    )}
+                </div>
+            </header>
+
+            <main style={{ padding: "20px", maxWidth: "900px", margin: "0 auto" }}>
                 <Routes>
-                    {/* 1. Trang Đăng nhập: Công khai */}
-                    <Route path="/login" element={<LoginPage />} />
+                    {/* Tuyến đường Đăng nhập */}
+                    <Route
+                        path="/login"
+                        element={
+                            <Login
+                                onLoginSuccess={handleLoginSuccess}
+                                isLoggedIn={Boolean(token)}
+                            />
+                        }
+                    />
 
-                    {/* 2. Danh sách sản phẩm: Cần đăng nhập (USER và ADMIN đều xem được) */}
+                    {/* Danh sách sản phẩm (Bắt buộc phải đăng nhập) */}
                     <Route
                         path="/products"
                         element={
-                            <ProtectedRoute>
-                                <ProductList />
-                            </ProtectedRoute>
+                            token
+                                ? <ProductList />
+                                : <Navigate to="/login" replace />
                         }
                     />
 
-                    {/* 3. Chi tiết 1 sản phẩm: Cần đăng nhập */}
-                    <Route
-                        path="/products/:id"
-                        element={
-                            <ProtectedRoute>
-                                <ProductDetail />
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    {/* 4. Thêm sản phẩm mới: CHỈ DÀNH CHO ADMIN (adminOnly={true}) */}
+                    {/* Thêm sản phẩm (Chỉ ADMIN) */}
                     <Route
                         path="/products/add"
                         element={
-                            <ProtectedRoute adminOnly={true}>
-                                <ProductAdd />
-                            </ProtectedRoute>
+                            token && role === "ADMIN"
+                                ? <ProductAdd />
+                                : <Navigate to="/products" replace />
                         }
                     />
 
-                    {/* 5. Sửa sản phẩm: CHỈ DÀNH CHO ADMIN (adminOnly={true}) */}
+                    {/* Sửa sản phẩm (Chỉ ADMIN) */}
                     <Route
                         path="/products/edit/:id"
                         element={
-                            <ProtectedRoute adminOnly={true}>
-                                <ProductEdit />
-                            </ProtectedRoute>
+                            token && role === "ADMIN"
+                                ? <ProductEdit />
+                                : <Navigate to="/products" replace />
                         }
                     />
 
-                    {/* Mặc định chuyển hướng về /products */}
-                    <Route path="/" element={<Navigate to="/products" replace />} />
-                    <Route path="*" element={<Navigate to="/products" replace />} />
+                    {/* Chi tiết sản phẩm (Cả USER và ADMIN) */}
+                    <Route
+                        path="/products/:id"
+                        element={
+                            token
+                                ? <ProductDetail />
+                                : <Navigate to="/login" replace />
+                        }
+                    />
+
+                    {/* Chuyển hướng mặc định */}
+                    <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </main>
         </>
@@ -85,12 +149,8 @@ function AppRoutes() {
 
 function App() {
     return (
-        // Khởi tạo BrowserRouter quản lý lịch sử điều hướng
         <BrowserRouter>
-            {/* Cung cấp dữ liệu đăng nhập AuthContext cho toàn bộ cây Component */}
-            <AuthProvider>
-                <AppRoutes />
-            </AuthProvider>
+            <AppContent />
         </BrowserRouter>
     );
 }

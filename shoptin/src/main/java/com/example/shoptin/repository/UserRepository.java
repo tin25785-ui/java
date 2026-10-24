@@ -14,7 +14,7 @@ import java.util.Optional;
  * =========================================================================
  */
 @Repository // Khai báo tầng Repository của Spring
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Tìm tài khoản theo username.

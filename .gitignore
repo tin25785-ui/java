@@ -16,3 +16,6 @@
 *.iml
 .DS_Store
 Thumbs.db
+
+# Temporary clone
+/java/

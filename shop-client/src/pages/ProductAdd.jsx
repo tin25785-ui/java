@@ -1,19 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { createProduct } from "../services/productService";
-import ProductForm from "../components/ProductForm";
 
 /**
  * =========================================================================
- * FILE: ProductAdd.jsx
- * NHIỆM VỤ: Trang Thêm sản phẩm mới.
- * BẢO VỆ: Được bọc trong <ProtectedRoute adminOnly={true}> tại App.jsx,
- * do đó CHỈ CÓ TÀI KHOẢN ADMIN mới được phép truy cập vào màn hình này!
+ * TRANG THÊM SẢN PHẨM: ProductAdd.jsx (Chỉ dành cho ADMIN)
  * =========================================================================
  */
 function ProductAdd() {
     const navigate = useNavigate();
-    // State lưu dữ liệu form
+
     const [product, setProduct] = useState({
         name: "",
         price: "",
@@ -21,7 +17,6 @@ function ProductAdd() {
         description: ""
     });
 
-    // Bắt sự kiện khi người dùng gõ vào các ô input
     const handleChange = (e) => {
         setProduct({
             ...product,
@@ -29,29 +24,83 @@ function ProductAdd() {
         });
     };
 
-    // Xử lý khi bấm nút Submit form
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         try {
-            // Gọi API POST /api/products thông qua productService
             await createProduct({
                 ...product,
                 price: Number(product.price),
                 quantity: Number(product.quantity)
             });
+
             alert("Thêm sản phẩm thành công");
-            navigate("/products"); // Chuyển về danh sách sản phẩm
+            navigate("/products");
         } catch (err) {
-            console.error(err);
-            const msg = err.response?.data?.message || "Thêm sản phẩm thất bại!";
-            alert(msg);
+            console.error("Lỗi khi thêm sản phẩm:", err);
+            alert("Lỗi khi thêm sản phẩm (Vui lòng kiểm tra quyền ADMIN)");
         }
     };
 
     return (
-        <div className="card narrow">
+        <div>
             <h2>Thêm sản phẩm</h2>
-            <ProductForm product={product} onChange={handleChange} onSubmit={handleSubmit} submitLabel="Thêm sản phẩm" />
+
+            <form onSubmit={handleSubmit} style={{ maxWidth: "400px" }}>
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Tên sản phẩm:</label>
+                    <input
+                        name="name"
+                        value={product.name}
+                        onChange={handleChange}
+                        required
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Giá:</label>
+                    <input
+                        name="price"
+                        type="number"
+                        value={product.price}
+                        onChange={handleChange}
+                        required
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Số lượng:</label>
+                    <input
+                        name="quantity"
+                        type="number"
+                        value={product.quantity}
+                        onChange={handleChange}
+                        required
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ display: "block" }}>Mô tả:</label>
+                    <input
+                        name="description"
+                        value={product.description}
+                        onChange={handleChange}
+                        style={{ width: "100%", padding: "6px" }}
+                    />
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+                    <button type="submit">
+                        Thêm sản phẩm
+                    </button>
+                    <Link to="/products" style={{ alignSelf: "center" }}>
+                        Hủy bỏ
+                    </Link>
+                </div>
+            </form>
         </div>
     );
 }
