@@ -72,27 +72,4 @@ public class AuthController {
                 foundUser.getRole()
         );
     }
-
-    /**
-     * API ĐĂNG NHẬP DÀNH CHO TRÌNH DUYỆT (Phương thức GET):
-     * Giúp bạn có thể gõ thẳng đường dẫn lên thanh địa chỉ của trình duyệt Web:
-     * Ví dụ: http://localhost:8080/api/auth/login?username=admin&password=123456
-     * Hoặc chỉ cần gõ: http://localhost:8080/api/auth/login (Mặc định tự đăng nhập admin)
-     */
-    @GetMapping("/login")
-    public String loginGet(
-            @RequestParam(defaultValue = "admin") String username,
-            @RequestParam(defaultValue = "123456") String password) {
-
-        User foundUser = userRepository
-                .findByUsername(username)
-                .filter(u -> u.getPassword().equals(password) ||
-                             (u.getUsername().equals("admin") && password.equals("admin123")) ||
-                             (u.getUsername().equals("user") && password.equals("user123")))
-                .orElseThrow(() ->
-                        new RuntimeException("Sai username hoặc password"));
-
-        return "DANG NHAP THANH CONG! Token JWT cua ban la:\n\n" +
-                jwtService.generateToken(foundUser.getUsername(), foundUser.getRole());
-    }
 }
