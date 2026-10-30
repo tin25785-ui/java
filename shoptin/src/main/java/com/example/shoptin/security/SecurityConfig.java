@@ -88,8 +88,8 @@ public class SecurityConfig {
                 // Cho phép tất cả request kiểm tra CORS (OPTIONS) đi qua tự do
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Cho phép gọi API đăng nhập tự do
-                .requestMatchers("/api/auth/login", "/api/auth/**").permitAll()
+                // Cho phép gọi API đăng nhập và trang lỗi tự do
+                .requestMatchers("/api/auth/login", "/api/auth/**", "/error").permitAll()
 
                 // Phân quyền cho ADMIN: Thêm (POST), Sửa (PUT), Xóa (DELETE)
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasAuthority("ADMIN")
